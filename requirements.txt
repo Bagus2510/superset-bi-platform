@@ -1,0 +1,5 @@
+psycopg2-binary==2.9.9
+
+# Hapus tanda pagar di bawah jika kamu ingin menghubungkan ke BigQuery
+# google-cloud-bigquery
+# sqlalchemy-bigquery
