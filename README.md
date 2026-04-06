@@ -164,6 +164,11 @@ docker compose down -v
 docker compose up -d --build
 ```
 
+## Public Access & Roles
+This project is configured to allow public viewing of specific dashboards:
+- **Public Role:** The `Public` role is configured to have `Gamma` permissions by default (as defined in `superset_config.py`).
+- **Access Control:** To make a dashboard public, you must manually grant `can read on Chart` and `can read on Dashboard` permissions to the `Public` role in the Superset UI (Security -> List Roles -> Public).
+
 ## Repository Structure
 
 - `docker-compose.yml` - Service definitions for Superset, PostgreSQL, and Redis
