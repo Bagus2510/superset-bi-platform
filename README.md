@@ -81,6 +81,48 @@ Required variables:
 - `SUPERSET_ADMIN_EMAIL`
 - `SUPERSET_ADMIN_PASSWORD`
 
+## GitLab Deployment
+
+This repository includes deployment templates:
+
+- `.env.example.deployment`
+- `docker-compose-deployment.yml.example`
+- `superset_config_deployment.py`
+
+Recommended GitLab flow:
+
+1. Store all sensitive values in GitLab CI/CD Variables (Masked + Protected), not in files.
+2. In your deploy job, write variables into a temporary `.env` file on the runner.
+3. Deploy using:
+
+```bash
+docker compose --env-file .env -f docker-compose-deployment.yml.example up -d --build
+```
+
+This repository also includes a ready pipeline file: `.gitlab-ci.yml`.
+It uses runner tag `docker-shell` by default, so update the tag if your GitLab runner uses a different name.
+
+Variables required in GitLab:
+
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `SUPERSET_SECRET_KEY`
+- `GUEST_TOKEN_JWT_SECRET`
+- `SUPERSET_ADMIN_USERNAME`
+- `SUPERSET_ADMIN_FIRSTNAME`
+- `SUPERSET_ADMIN_LASTNAME`
+- `SUPERSET_ADMIN_EMAIL`
+- `SUPERSET_ADMIN_PASSWORD`
+- `ALLOWED_CORS_ORIGINS`
+- `SESSION_COOKIE_SECURE`
+- `SESSION_COOKIE_NAME` (optional, default `superset_session`)
+- `SESSION_COOKIE_SAMESITE` (optional, default `None`)
+- `SESSION_COOKIE_DOMAIN` (optional)
+- `PERMANENT_SESSION_LIFETIME` (optional, default `86400`)
+- `ENABLE_PROXY_FIX` (optional, default `True`)
+- `LOGOUT_REDIRECT_URL` (optional, default `/login/`)
+
 ## Default Behavior
 
 - Superset is exposed on port `8088`

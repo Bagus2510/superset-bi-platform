@@ -1,0 +1,95 @@
+x-superset-depends-on: &superset-depends-on
+  - db
+  - redis
+
+x-superset-volumes: &superset-volumes
+  - ./superset_config_deployment.py:/app/pythonpath/superset_config.py:ro
+
+services:
+  redis:
+    image: redis:7
+    container_name: superset_cache
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db:
+    image: postgres:14
+    container_name: superset_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  superset:
+    build: . 
+    container_name: superset_app
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes: *superset-volumes
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      GUEST_TOKEN_JWT_SECRET: ${GUEST_TOKEN_JWT_SECRET}
+      ALLOWED_CORS_ORIGINS: ${ALLOWED_CORS_ORIGINS}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-superset_session}
+      SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-None}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
+      PERMANENT_SESSION_LIFETIME: ${PERMANENT_SESSION_LIFETIME:-86400}
+      ENABLE_PROXY_FIX: ${ENABLE_PROXY_FIX:-True}
+      LOGOUT_REDIRECT_URL: ${LOGOUT_REDIRECT_URL:-/login/}
+      SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      CACHE_CONFIG: '{"CACHE_TYPE": "RedisCache", "CACHE_DEFAULT_TIMEOUT": 86400, "CACHE_KEY_PREFIX": "superset_", "CACHE_REDIS_URL": "redis://redis:6379/0"}'
+
+  superset-init:
+    build: .
+    container_name: superset_init
+    restart: "no"
+    command: >
+      /bin/sh -c "
+      superset db upgrade &&
+      superset fab create-permissions &&
+      superset fab security-converge &&
+      (superset fab create-admin --username ${SUPERSET_ADMIN_USERNAME} --firstname ${SUPERSET_ADMIN_FIRSTNAME} --lastname ${SUPERSET_ADMIN_LASTNAME} --email ${SUPERSET_ADMIN_EMAIL} --password ${SUPERSET_ADMIN_PASSWORD} || true) &&
+      superset init"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes: *superset-volumes
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      GUEST_TOKEN_JWT_SECRET: ${GUEST_TOKEN_JWT_SECRET}
+      ALLOWED_CORS_ORIGINS: ${ALLOWED_CORS_ORIGINS}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-superset_session}
+      SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-None}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
+      PERMANENT_SESSION_LIFETIME: ${PERMANENT_SESSION_LIFETIME:-86400}
+      ENABLE_PROXY_FIX: ${ENABLE_PROXY_FIX:-True}
+      LOGOUT_REDIRECT_URL: ${LOGOUT_REDIRECT_URL:-/login/}
+      SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+
+volumes:
+  redis_data:
+  db_data:
